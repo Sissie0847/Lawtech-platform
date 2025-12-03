@@ -113,14 +113,62 @@ class AIHighlighter:
         if not content or len(content.strip()) < 10:
             return content
         
-        prompt = """你是一个专业的法律科技领域编辑。请阅读以下文章内容，找出其中最重要的2-4个核心观点或关键信息，用 **双星号** 将它们标记出来。
-
-要求：
-1. 只标记真正重要的核心观点，不要过度标记
-2. 标记的内容应该是完整的句子或短语
-3. 保持原文的其他部分不变
-4. 直接返回处理后的全文，不要添加任何解释
-
+        prompt = """# Role
+你是一位 LegalTech 资讯主编。你的目标是保证阅读体验的“高信噪比”，同时避免页面枯燥无重点。
+# Task
+阅读【新闻原文】，采用 **“分级召回 (Tiered Recall)”** 策略进行局部高亮。
+# ⚡ Core Logic: Tiered Strategy (分级策略)
+请在内心按顺序执行以下逻辑判断（不要输出判断过程，只输出最终结果）：
+1.  **第一轮扫描 (Tier 1 - 核弹级)**
+    * 寻找：**具体金额/交易价**、**生效/截止日期**、**定性结论**、**具体效率数据**。
+    * 👉 判定：如果发现了 Tier 1，**只标红 Tier 1**，严格忽略 Tier 2。
+2.  **第二轮召回 (Tier 2 - 保底级)**
+    * *仅当第一轮扫描结果为空时启动。*
+    * 寻找：**增长率**、**市场地位**、**里程碑动作**、**积极情绪引用**。
+    * 👉 判定：如果没发现 Tier 1，则标红 Tier 2 以防页面空白。
+# Constraints (格式铁律)
+1.  **Output Format**: 直接输出处理后的文本，**不要**输<Logic_Analysis>的内容。
+2.  **Length**: 标红长度控制在 **4-10 个汉字**。
+3.  **No Hallucination**: 绝不修改原文。
+# Few-Shot Examples (逻辑演示)
+---
+### Case 1: 资源丰富 (Hit Tier 1 -> Ignore Tier 2)
+<Input>
+Elite 平台订阅用户激增 125%，过去 12 个月处理账单交易额达 720 亿美元。原生集成的 Payments 功能将付款周期缩短 40%。
+</Input>
+<Logic_Analysis>
+扫描发现 Tier 1 信息："720 亿美元" (Money) 和 "缩短 40%" (Efficiency)。
+策略：命中 Tier 1，忽略 "增长 125%" (Tier 2)。
+</Logic_Analysis>
+<Output>
+Elite 平台订阅用户激增 125%，过去 12 个月处理账单交易额达 **720 亿美元**。原生集成的 Payments 功能将付款周期 **缩短 40%**。
+</Output>
+---
+### Case 2: 资源贫瘠 (No Tier 1 -> Recall Tier 2)
+<Input>
+Clarra 推出了业界首个全球案件管理平台，订阅用户量同比激增 125％，持续引领数字化转型。
+</Input>
+<Logic_Analysis>
+扫描 Tier 1：无金额，无截止日，无具体效率数据。
+策略：启动 Tier 2 召回。标红 "业界首个..." (Status) 和 "激增 125%" (Growth)。
+</Logic_Analysis>
+<Output>
+Clarra 推出了 **业界首个全球案件管理平台**，订阅用户量 **同比激增 125％**，持续引领数字化转型。
+</Output>
+---
+### Case 3: 纯营销空话 (No Tier 1 & No Tier 2 -> Empty)
+<Input>
+我们致力于构建开放的生态系统，赋能每一位律师实现价值飞跃，共创美好未来。
+</Input>
+<Logic_Analysis>
+扫描 Tier 1：无。
+扫描 Tier 2：无具体增长，无里程碑，全是愿景空话。
+策略：保持空白。
+</Logic_Analysis>
+<Output>
+我们致力于构建开放的生态系统，赋能每一位律师实现价值飞跃，共创美好未来。
+</Output>
+---
 原文内容：
 """ + content
         

@@ -1,0 +1,13 @@
+# LawTech 项目依赖
+
+# 核心功能
+requests
+pandas
+streamlit
+
+# 卡片生成
+jinja2
+playwright
+python-dotenv
+
+# 其他

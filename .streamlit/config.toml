@@ -1,0 +1,17 @@
+[theme]
+# 主色调 - 用于按钮、链接、拖拽卡片等
+# 使用浅米色让拖拽卡片背景不那么刺眼
+primaryColor = "#e8ddd4"
+
+# 背景色
+backgroundColor = "#faf8f5"
+
+# 次要背景色 - 用于侧边栏、卡片等
+secondaryBackgroundColor = "#f5f0e8"
+
+# 文字颜色 - 黑色
+textColor = "#000000"
+
+# 字体
+font = "sans serif"
+

@@ -163,6 +163,34 @@ class FeishuPublisher:
             print(f"[DEBUG] 飞书API响应: {data}")
             raise Exception(f"写入内容失败: {error_detail}")
     
+    def set_public_edit(self, document_id: str):
+        """设置文档为「获得链接的人可编辑」"""
+        token = self.get_tenant_access_token()
+        url = f"{self.base_url}/drive/v1/permissions/{document_id}/public?type=docx"
+        
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json"
+        }
+        
+        payload = {
+            "external_access_entity": "open",
+            "security_entity": "anyone_can_edit",
+            "comment_entity": "anyone_can_view",
+            "share_entity": "anyone",
+            "link_share_entity": "anyone_editable"
+        }
+        
+        response = requests.patch(url, headers=headers, json=payload)
+        data = response.json()
+        
+        if data.get("code") != 0:
+            print(f"[WARN] 设置权限失败: {data.get('msg')}, error: {data}")
+        else:
+            print(f"[INFO] 文档权限已设置为「链接可编辑」")
+        
+        return data
+    
     def build_weekly_report_blocks(self, articles: list):
         """
         根据文章列表构建飞书文档块
@@ -311,14 +339,23 @@ class FeishuPublisher:
         title = WEEKLY_REPORT_TITLE_TEMPLATE.format(vol=vol)
         document_id = self.create_document(title, folder_token)
         
-        # 2. 构建内容块
+        # 2. 设置文档权限为「链接可编辑」
+        self.set_public_edit(document_id)
+        
+        # 3. 构建内容块
         blocks = self.build_weekly_report_blocks(articles)
         
-        # 3. 写入内容
-        if blocks:
-            self.create_blocks(document_id, document_id, blocks)
+        # 4. 分批写入内容（飞书 API 限制每次最多 50 个 children）
+        BATCH_SIZE = 50
+        current_index = 0
         
-        # 4. 返回文档链接
+        for i in range(0, len(blocks), BATCH_SIZE):
+            batch = blocks[i:i + BATCH_SIZE]
+            if batch:
+                self.create_blocks(document_id, document_id, batch, index=current_index)
+                current_index += len(batch)
+        
+        # 5. 返回文档链接
         doc_url = f"https://bytedance.larkoffice.com/docx/{document_id}"
         
         return document_id, doc_url

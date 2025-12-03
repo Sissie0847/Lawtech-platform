@@ -4,6 +4,7 @@
 """
 
 import re
+import os
 
 
 def generate_card_txt(articles: list, max_count: int = 5) -> str:
@@ -58,12 +59,28 @@ def remove_markdown_bold(text: str) -> str:
 
 
 def clean_content(text: str) -> str:
-    """清理内容，合并多余空行"""
+    """清理内容，移除所有换行，使单条新闻内容在一行"""
     if not text:
         return text
-    # 将多个换行合并为一个
-    text = re.sub(r'\n{3,}', '\n\n', text)
+    # 将所有换行替换为空格，保持内容连贯
+    text = re.sub(r'\n+', ' ', text)
+    # 清理多余空格
+    text = re.sub(r' {2,}', ' ', text)
     return text.strip()
+
+
+def save_card_txt(articles: list, filepath: str = "news_articles.txt", max_count: int = 5) -> str:
+    """
+    生成卡片 TXT 内容并保存到文件
+    返回文件路径
+    """
+    txt_content = generate_card_txt(articles, max_count)
+    
+    with open(filepath, 'w', encoding='utf-8') as f:
+        f.write(txt_content)
+    
+    print(f"✅ 已保存到 {filepath}")
+    return filepath
 
 
 def test_generate():

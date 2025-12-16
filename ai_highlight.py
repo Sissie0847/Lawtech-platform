@@ -173,7 +173,18 @@ Clarra 推出了 **业界首个全球案件管理平台**，订阅用户量 **�
 """ + content
         
         result = self._call_api(prompt, max_tokens=4000)
-        return result if result else content
+        if not result:
+            return content
+
+        result_stripped = result.strip()
+
+        # 安全兜底：如果 AI 返回内容过短，或者相对原文缩短过多，则认为标红失败，直接回退到原文
+        original_len = len(content) if content is not None else 0
+        if original_len > 0:
+            if len(result_stripped) < 50 or len(result_stripped) < 0.5 * original_len:
+                return content
+
+        return result_stripped
     
     def process_article(self, title: str, content: str) -> dict:
         """

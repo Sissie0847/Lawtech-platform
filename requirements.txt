@@ -9,5 +9,6 @@ streamlit
 jinja2
 playwright
 python-dotenv
+openai>=1.0.0
 
 # 其他

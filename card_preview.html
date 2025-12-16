@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LAWGEEK 晚读 - 卡片预览</title>
+    <style>
+        :root {
+            --bg-color: #E6E9EF;
+            --text-primary: #333333;
+            --text-secondary: #7D8592;
+            --shadow-light: #FFFFFF;
+            --shadow-dark: #D1D9E6;
+            --theme-blue: #489CC1;
+            --theme-red: #FF7272;
+            --theme-green: #21A87D;
+            --theme-purple: #6C63FF;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+            line-height: 1.8;
+            -webkit-font-smoothing: antialiased;
+            padding: 30px;
+        }
+
+        .container { max-width: 600px; margin: 0 auto; padding: 0 15px; }
+
+        /* Hero Banner */
+        .hero-banner {
+            display: flex; flex-direction: column; text-align: center;
+            align-items: center; gap: 20px;
+            background: var(--bg-color); border-radius: 30px;
+            padding: 30px 20px; margin-bottom: 30px;
+            position: relative; overflow: hidden;
+            box-shadow: 15px 15px 30px var(--shadow-dark), -15px -15px 30px var(--shadow-light);
+        }
+        .banner-content { z-index: 1; }
+        .banner-subtitle {
+            font-size: 0.9rem; color: var(--theme-blue); font-weight: 700;
+            letter-spacing: 2px; text-transform: uppercase; margin-bottom: 5px;
+        }
+        .banner-title {
+            font-size: 2.8rem; font-weight: 900; color: var(--text-primary);
+            line-height: 1.1; margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+        .banner-meta {
+            display: inline-flex; align-items: center; justify-content: center;
+            gap: 10px; color: var(--text-secondary); font-weight: 500; font-size: 0.9rem;
+        }
+        .banner-visual {
+            position: relative; flex-shrink: 0; width: 80px; height: 80px;
+            border-radius: 50%; background: var(--bg-color);
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: inset 6px 6px 12px var(--shadow-dark), inset -6px -6px 12px var(--shadow-light);
+        }
+        .visual-icon { font-size: 2rem; filter: grayscale(100%) opacity(0.5); }
+        .banner-glow {
+            position: absolute; top: -50px; right: -50px; width: 200px; height: 200px;
+            background: radial-gradient(circle, rgba(72,156,193,0.15) 0%, rgba(230,233,239,0) 70%);
+            z-index: 0; pointer-events: none;
+        }
+
+        /* 插画区域 */
+        .feature-illustration {
+            width: 100%; height: 200px; margin-bottom: 40px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .feature-illustration svg {
+            width: 100%; height: 100%;
+            filter: drop-shadow(8px 8px 16px var(--shadow-dark)) drop-shadow(-8px -8px 16px var(--shadow-light));
+        }
+
+        /* 头条区域 */
+        .lead-story {
+            margin-bottom: 50px; padding: 10px 15px 10px 20px; position: relative;
+        }
+        .lead-story::before {
+            content: ''; position: absolute; left: 5px; top: 15px; bottom: 15px;
+            width: 3px; border-radius: 2px; background: var(--theme-blue);
+        }
+        .lead-header {
+            display: flex; flex-wrap: wrap; align-items: baseline;
+            gap: 10px; margin-bottom: 15px;
+        }
+        .lead-number {
+            font-size: 3rem; font-weight: 900; color: var(--theme-blue); line-height: 1;
+            text-shadow: 2px 2px 5px rgba(255,255,255,0.8), -2px -2px 5px rgba(0,0,0,0.1);
+        }
+        .lead-title {
+            font-size: 1.5rem; font-weight: 800; line-height: 1.4;
+            color: var(--text-primary); flex: 1; min-width: 200px;
+        }
+        .lead-desc {
+            font-size: 1rem; color: var(--text-secondary);
+            margin-bottom: 25px; text-align: justify;
+        }
+        .lead-bullets { list-style: none; padding: 0; margin: 0; }
+        .lead-bullets li {
+            position: relative; 
+            padding-left: 18px; 
+            margin-bottom: 10px;
+            color: var(--text-primary); 
+            font-size: 0.95rem;
+            line-height: 1.6;
+            text-indent: -18px;
+            margin-left: 18px;
+        }
+        .lead-bullets li::before {
+            content: ''; 
+            display: inline-block;
+            width: 6px; height: 6px; 
+            border-radius: 50%;
+            background: var(--theme-blue);
+            margin-right: 12px;
+            vertical-align: middle;
+        }
+
+        /* 关键数据组件 */
+        .key-data-container {
+            display: flex;
+            justify-content: flex-start;
+            gap: 12px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        .key-data-card {
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 10px;
+            padding: 12px 16px;
+            min-width: 80px;
+            text-align: center;
+        }
+        .key-data-label {
+            display: block;
+            font-size: 0.65rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+        .key-data-value {
+            display: block;
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: var(--theme-blue);
+            line-height: 1.2;
+        }
+        .key-data-unit {
+            font-size: 0.7rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-left: 1px;
+        }
+
+        .section-divider {
+            height: 2px; background: var(--bg-color); margin: 0 auto 50px; width: 80%;
+            border-radius: 2px;
+            box-shadow: inset 1px 1px 2px var(--shadow-dark), inset -1px -1px 2px var(--shadow-light);
+        }
+
+        /* 普通新闻卡片 */
+        .news-grid { display: grid; gap: 40px; padding: 0 10px; }
+        .news-card {
+            background: var(--bg-color); border-radius: 25px; padding: 35px;
+            box-shadow: 15px 15px 30px var(--shadow-dark), -15px -15px 30px var(--shadow-light);
+            position: relative; overflow: hidden;
+        }
+        .news-card::after {
+            content: ''; position: absolute; top: 0; left: 0;
+            width: 100%; height: 4px; background: var(--card-accent); opacity: 0.7;
+        }
+        .card-header {
+            display: flex; align-items: center; gap: 15px; margin-bottom: 15px;
+        }
+        .card-number {
+            flex-shrink: 0; width: 40px; height: 40px; border-radius: 10px;
+            background: var(--bg-color); color: var(--card-accent);
+            font-weight: 900; font-size: 1.1rem;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: inset 3px 3px 6px rgba(0,0,0,0.1), inset -3px -3px 6px var(--shadow-light);
+        }
+        .card-title {
+            font-size: 1.15rem; font-weight: 700; color: var(--text-primary);
+            line-height: 1.4; margin: 0;
+        }
+        .card-desc {
+            color: #444444; font-size: 0.9rem; margin-bottom: 20px;
+            text-align: justify; font-weight: 500;
+        }
+        .card-bullets {
+            list-style: none; padding: 18px 20px; border-radius: 12px;
+            background: rgba(255, 255, 255, 0.55);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            border-left: 3px solid var(--card-accent);
+            margin: 0;
+        }
+        .card-bullets li {
+            font-size: 0.85rem; 
+            margin-bottom: 8px; 
+            line-height: 1.6; 
+            color: #666666;
+            padding-left: 16px;
+            text-indent: -16px;
+        }
+        .card-bullets li:last-child { margin-bottom: 0; }
+        .card-bullets li::before {
+            content: '•'; 
+            display: inline;
+            color: var(--card-accent); 
+            font-size: 1.1em; 
+            font-weight: bold;
+            margin-right: 8px;
+        }
+        strong { color: #444; font-weight: 700; }
+
+        /* 页脚 */
+        footer {
+            margin-top: 60px; text-align: center; padding: 30px 20px 10px;
+            border-top: 1px solid rgba(0,0,0,0.05);
+        }
+        .footer-brand {
+            font-size: 1.1rem; font-weight: 800; letter-spacing: 2px;
+            color: var(--text-primary); margin-bottom: 10px;
+        }
+        .footer-slogan {
+            font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 30px;
+        }
+        .qr-code-box {
+            width: 100px; height: 100px; margin: 0 auto; border-radius: 20px;
+            background: var(--bg-color); padding: 10px;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 10px 10px 20px var(--shadow-dark), -10px -10px 20px var(--shadow-light);
+        }
+        .qr-placeholder {
+            font-size: 2rem;
+            color: #ccc;
+        }
+        .qr-text { margin-top: 15px; font-size: 0.8rem; color: #999; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        
+        <!-- Hero Banner -->
+        <div class="hero-banner">
+            <div class="banner-glow"></div>
+            <div class="banner-visual">
+                <span class="visual-icon">⚖️</span>
+            </div>
+            <div class="banner-content">
+                <div class="banner-subtitle">LAWGEEK 晚读</div>
+                <h1 class="banner-title">DAILY NEWS</h1>
+                <div class="banner-meta">
+                    <span>📅 12月16日</span>
+                    <span>|</span>
+                    <span>星期一</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI + LAW 插画 -->
+        <div class="feature-illustration">
+            <svg viewBox="0 0 500 200" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <linearGradient id="opt1-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" style="stop-color:#489CC1;stop-opacity:0.8" />
+                        <stop offset="100%" style="stop-color:#6C63FF;stop-opacity:0.8" />
+                    </linearGradient>
+                </defs>
+                <g stroke="url(#opt1-grad)" stroke-width="1.5" opacity="0.3">
+                    <line x1="150" y1="100" x2="250" y2="50" />
+                    <line x1="250" y1="50" x2="350" y2="100" />
+                    <line x1="150" y1="100" x2="250" y2="150" />
+                    <line x1="250" y1="150" x2="350" y2="100" />
+                    <line x1="250" y1="50" x2="250" y2="150" />
+                    <line x1="150" y1="100" x2="100" y2="150" />
+                    <line x1="350" y1="100" x2="400" y2="50" />
+                </g>
+                <g>
+                    <circle cx="250" cy="50" r="12" fill="#E6E9EF" stroke="#489CC1" stroke-width="3" />
+                    <circle cx="250" cy="150" r="12" fill="#E6E9EF" stroke="#6C63FF" stroke-width="3" />
+                    <circle cx="150" cy="100" r="18" fill="#E6E9EF" stroke="#D1D9E6" stroke-width="1" />
+                    <text x="150" y="105" text-anchor="middle" font-size="12" fill="#999">AI</text>
+                    <circle cx="350" cy="100" r="18" fill="#E6E9EF" stroke="#D1D9E6" stroke-width="1" />
+                    <text x="350" y="105" text-anchor="middle" font-size="12" fill="#999">LAW</text>
+                </g>
+            </svg>
+        </div>
+
+        <!-- 头条新闻 01 -->
+        <section class="lead-story">
+            <div class="lead-header">
+                <span class="lead-number">01</span>
+                <h2 class="lead-title">全球最大律所 Dentons 与 OpenAI 达成合作</h2>
+            </div>
+            <p class="lead-desc">全球最大的律师事务所 Dentons 与 OpenAI 建立直接合作，率先在全所范围部署 ChatGPT 企业版，并基于 API 开发定制化法律工具，标志着法律行业与 AI 巨头的首次深度协同。</p>
+            
+            <!-- 关键数据组件 -->
+            <div class="key-data-container">
+                <div class="key-data-card">
+                    <span class="key-data-label">试点启动时间</span>
+                    <span class="key-data-value">三月<span class="key-data-unit"></span></span>
+                </div>
+                <div class="key-data-card">
+                    <span class="key-data-label">全面推广时间</span>
+                    <span class="key-data-value">十月<span class="key-data-unit"></span></span>
+                </div>
+            </div>
+            
+            <ul class="lead-bullets">
+                <li>Dentons 英国、爱尔兰和中东办公室优先接入最新大模型技术，员工可使用安全增强版 ChatGPT 企业版，提升服务效率与模型迭代速度。</li>
+                <li>内部团队开发定制 GPT 工具，如法规追踪系统和雇佣仲裁分析模块，所有应用均设'律师介入'环节以保障数据隐私与合规性。</li>
+                <li>合作模式打破传统律所依赖第三方科技公司的路径，未来计划建立英国数据驻留中心，满足客户对数据本地化的严格要求。</li>
+            </ul>
+        </section>
+
+        <div class="section-divider"></div>
+
+        <!-- 普通新闻卡片 02-05 -->
+        <div class="news-grid">
+            
+            <!-- 卡片 02 -->
+            <article class="news-card" style="--card-accent: #489CC1;">
+                <div class="card-header">
+                    <div class="card-number">02</div>
+                    <h3 class="card-title">CMS全球部署Harvey AI：EMEA最大规模律所智能化落地</h3>
+                </div>
+                <ul class="card-bullets">
+                    <li>CMS在50多个国家的21个成员机构全面推广Harvey AI，覆盖7000名律师与员工，初步数据显示93%用户效率提升，人均年节省117.9小时。</li>
+                    <li>此次部署标志着传统律所从试点走向规模化AI融合，将释放的时间资源转向高价值法律服务，重塑客户价值交付模式。</li>
+                </ul>
+            </article>
+
+            <!-- 卡片 03 -->
+            <article class="news-card" style="--card-accent: #FF7272;">
+                <div class="card-header">
+                    <div class="card-number">03</div>
+                    <h3 class="card-title">Clio 的 AI 转型：法律工作流的范式转移</h3>
+                </div>
+                <ul class="card-bullets">
+                    <li>Clio 宣布以 10 亿美元收购 vLex，并推出新一代 '行动系统' AI 平台，实现法律流程自动化。</li>
+                    <li>通过垂直领域深度整合，AI 正从辅助工具变为法律服务的核心驱动力，重塑律所工作模式。</li>
+                </ul>
+            </article>
+
+            <!-- 卡片 04 -->
+            <article class="news-card" style="--card-accent: #21A87D;">
+                <div class="card-header">
+                    <div class="card-number">04</div>
+                    <h3 class="card-title">Harvey 创始人 Reddit 深度对话：法律 AI 正从工具迈向平台</h3>
+                </div>
+                <ul class="card-bullets">
+                    <li>Harvey 联合创始人披露公司日活用户占月活比例自2023年以来增长81%，并强调与 LexisNexis 深度整合，开发出即决判决动议起草等垂直工作流，团队中20%为执业背景律师。</li>
+                    <li>法律 AI 的价值不在于'零幻觉'，而在于重构服务模式——Harvey 坚持专注法律场景的定制化、安全性与生态集成，推动行业向高协作、合规可控的平台级演进。</li>
+                </ul>
+            </article>
+
+            <!-- 卡片 05 -->
+            <article class="news-card" style="--card-accent: #6C63FF;">
+                <div class="card-header">
+                    <div class="card-number">05</div>
+                    <h3 class="card-title">法大大电子签连获四项大奖：AI+出海驱动法律科技新范式</h3>
+                </div>
+                <ul class="card-bullets">
+                    <li>法大大近期斩获IDC'中企出海奖'、36氪'WISE2025年度AI应用场景突破企业'、WIM'2025中国企业数字化服务商TOP10'及中关村'番钛客'金融科技应用创新奖，其Nota Sign全球签支持超100个国家合规签约，iTerms平台实现AI驱动的智能合同生成，累计签署文件达122亿份。</li>
+                    <li>奖项背后反映电子签从工具向全链路服务跃迁的趋势——融合大模型、区块链与国密加密技术，正成为企业出海、金融合规与法务提效的核心数字基座。</li>
+                </ul>
+            </article>
+
+        </div>
+
+        <!-- 页脚 -->
+        <footer>
+            <div class="footer-brand">LAWGEEK | 法律极客</div>
+            <p class="footer-slogan">Memene · 阅读即成长</p>
+            <div class="qr-code-box">
+                <span class="qr-placeholder">📷</span>
+            </div>
+            <p class="qr-text">长按扫码 · 订阅接收每日推送</p>
+        </footer>
+    </div>
+</body>
+</html>
+

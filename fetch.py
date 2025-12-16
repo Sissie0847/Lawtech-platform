@@ -47,6 +47,15 @@ def get_data_from_backend(date_str=None):
         
         data = response.json()
         
+        # ========== DEBUG: 打印 API 原始返回 ==========
+        import json
+        print("\n" + "="*60)
+        print("📡 API 原始返回数据:")
+        print("="*60)
+        print(json.dumps(data, ensure_ascii=False, indent=2))
+        print("="*60 + "\n")
+        # =============================================
+        
         if data.get('statusCode') != 200:
             print(f"❌ API 返回错误: {data.get('statusText', '未知错误')}")
             return []
@@ -62,7 +71,19 @@ def get_data_from_backend(date_str=None):
         
         # 转换为统一格式
         news_list = []
-        for item in content_list:
+        for idx, item in enumerate(content_list, 1):
+            # ========== DEBUG: 打印每条新闻的原始字段 ==========
+            print(f"\n📰 第 {idx} 条新闻原始字段:")
+            print(f"   - title: {item.get('title', '')[:50]}...")
+            print(f"   - referenceLinks: {item.get('referenceLinks', '')}")
+            print(f"   - reference: {item.get('reference', '')}")
+            print(f"   - remakeIndex: {item.get('remakeIndex', 0)}")
+            print(f"   - score: {item.get('score', 0)}")
+            print(f"   - content 长度: {len(item.get('content', ''))} 字符")
+            # 打印 item 中所有的 key，帮助发现新字段
+            print(f"   - 所有字段: {list(item.keys())}")
+            # =============================================
+            
             news_list.append({
                 "title": item.get('title', ''),
                 "url": item.get('referenceLinks', ''),

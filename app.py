@@ -463,6 +463,19 @@ def get_ai_badge_class(ai_tag):
     return badge_map.get(ai_tag, ("normal", "📄 一般"))
 
 
+def convert_markdown_highlights(text: str) -> str:
+    """
+    将 Markdown 的 **加粗** 标记转换为 HTML 高亮样式
+    """
+    import re
+    if not text:
+        return text
+    # 将 **文字** 转换为带高亮样式的 <strong> 标签
+    pattern = r'\*\*(.+?)\*\*'
+    replacement = r'<strong style="color: #b85c38; background: linear-gradient(180deg, transparent 60%, rgba(184, 92, 56, 0.15) 60%); padding: 0 2px;">\1</strong>'
+    return re.sub(pattern, replacement, text)
+
+
 def render_news_card(row, idx, df):
     """渲染单个新闻卡片"""
     ai_tag = row.get('AI分类', '一般')
@@ -478,6 +491,8 @@ def render_news_card(row, idx, df):
     if pd.isna(content_raw):
         content_raw = ''
     content = str(content_raw).strip() if content_raw else ''
+    # 将 Markdown 标记转换为 HTML 高亮
+    content = convert_markdown_highlights(content)
     
     with st.container():
         col_content, col_action = st.columns([5, 1])
@@ -791,26 +806,63 @@ with tab_publish:
                 """, unsafe_allow_html=True)
         
         with right_col:
-            b1, b2, b3, b4, b5 = st.columns([1, 1, 1, 1, 1])
-            with b1:
-                publish_clicked = st.button("📤 发布飞书")
-            with b2:
-                wechat_clicked = st.button("📱 公众号")
-            with b3:
-                card_clicked = st.button("🃏 卡片")
-            with b4:
-                copy_clicked = st.button("💬 文案")
-            with b5:
-                archive_clicked = st.button("📦 归档", type="primary")
+            # 检查是否已有生成的文档（同一期号）
+            cached_doc = st.session_state.get('feishu_doc', {})
+            cached_vol = cached_doc.get('vol')
+            cached_url = cached_doc.get('url')
+            has_cached_doc = cached_vol == vol_number and cached_url and vol_number
+            
+            if has_cached_doc:
+                # 已有文档：查看文档 | 重新生成 | 公众号 | 卡片 | 文案 | 归档
+                b1, b2, b3, b4, b5, b6 = st.columns([1, 1, 1, 1, 1, 1])
+                with b1:
+                    view_doc_clicked = st.button("📄 查看文档")
+                    publish_clicked = False
+                with b2:
+                    regenerate_clicked = st.button("🔄 重新生成")
+                with b3:
+                    wechat_clicked = st.button("📱 公众号")
+                with b4:
+                    card_clicked = st.button("🃏 卡片")
+                with b5:
+                    copy_clicked = st.button("💬 文案")
+                with b6:
+                    archive_clicked = st.button("📦 归档", type="primary")
+            else:
+                # 无缓存：发布飞书 | 公众号 | 卡片 | 文案 | 归档
+                b1, b2, b3, b4, b5 = st.columns([1, 1, 1, 1, 1])
+                view_doc_clicked = False
+                regenerate_clicked = False
+                with b1:
+                    publish_clicked = st.button("📤 发布飞书")
+                with b2:
+                    wechat_clicked = st.button("📱 公众号")
+                with b3:
+                    card_clicked = st.button("🃏 卡片")
+                with b4:
+                    copy_clicked = st.button("💬 文案")
+                with b5:
+                    archive_clicked = st.button("📦 归档", type="primary")
     else:
         vol_number = ""
         publish_clicked = False
+        regenerate_clicked = False
+        view_doc_clicked = False
         wechat_clicked = False
         card_clicked = False
         copy_clicked = False
         archive_clicked = False
     
-    if publish_clicked:
+    # 处理查看已生成文档
+    if view_doc_clicked:
+        cached_doc = st.session_state.get('feishu_doc', {})
+        if cached_doc.get('url'):
+            st.success(f"📄 Vol.{cached_doc.get('vol')} 文档已生成")
+            st.markdown(f"👉 [点击查看文档]({cached_doc.get('url')})")
+            st.info("💡 如需重新生成，请点击「🔄 重新生成」按钮")
+    
+    # 处理发布或重新生成
+    if publish_clicked or regenerate_clicked:
         # 清除展示状态
         st.session_state['show_wechat'] = False
         st.session_state['show_card'] = False
@@ -826,6 +878,14 @@ with tab_publish:
                     publisher = FeishuPublisher()
                     articles = selected_articles.to_dict('records')
                     doc_id, doc_url = publisher.publish_weekly_report(vol_number, articles)
+                    
+                    # 缓存文档信息，避免重复生成
+                    st.session_state['feishu_doc'] = {
+                        'vol': vol_number,
+                        'url': doc_url,
+                        'doc_id': doc_id
+                    }
+                    
                     st.success("🎉 发布成功！")
                     st.markdown(f"📄 [点击查看文档]({doc_url})")
                     st.info("💡 确认无误后，点击「📦 归档」按钮完成归档")
@@ -844,6 +904,11 @@ with tab_publish:
             st.error("⚠️ 还没有标记为「入库」的文章！")
         else:
             trash_count = archive_articles(saved_df, selected_articles, vol_number)
+            
+            # 归档成功后清除文档缓存
+            if 'feishu_doc' in st.session_state:
+                del st.session_state['feishu_doc']
+            
             st.success(f"🎉 已归档！文章已标记为「已发布 vol.{vol_number}」")
             st.info(f"📦 入库存档：archive/vol_{vol_number}.csv")
             if trash_count > 0:

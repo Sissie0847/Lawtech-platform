@@ -326,6 +326,26 @@ class FeishuPublisher:
             except:
                 return "链接"
     
+    def _clean_articles(self, articles: list) -> list:
+        """
+        清洗文章数据，移除 NaN/inf 等非法 JSON 值
+        """
+        import math
+        cleaned = []
+        for article in articles:
+            clean_article = {}
+            for key, value in article.items():
+                # 处理 float 类型的 NaN 和 inf
+                if isinstance(value, float) and (math.isnan(value) or math.isinf(value)):
+                    clean_article[key] = ""
+                # 处理 None
+                elif value is None:
+                    clean_article[key] = ""
+                else:
+                    clean_article[key] = value
+            cleaned.append(clean_article)
+        return cleaned
+
     def publish_weekly_report(self, vol: str, articles: list, folder_token: str = None):
         """
         发布周报
@@ -335,6 +355,9 @@ class FeishuPublisher:
         
         返回: (document_id, document_url)
         """
+        # 0. 清洗数据，移除 NaN/inf 等非法值
+        articles = self._clean_articles(articles)
+
         # 1. 创建文档
         title = WEEKLY_REPORT_TITLE_TEMPLATE.format(vol=vol)
         document_id = self.create_document(title, folder_token)

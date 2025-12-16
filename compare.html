@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>卡片样式对比</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: #1a1a2e;
+            min-height: 100vh;
+        }
+        .header {
+            background: #16213e;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #0f3460;
+        }
+        .header h1 {
+            color: #e94560;
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+        }
+        .controls button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+        .btn-refresh {
+            background: #0f3460;
+            color: #fff;
+        }
+        .btn-refresh:hover { background: #1a4a7a; }
+        .btn-swap {
+            background: #e94560;
+            color: #fff;
+        }
+        .btn-swap:hover { background: #ff6b6b; }
+        
+        .compare-container {
+            display: flex;
+            height: calc(100vh - 60px);
+        }
+        .panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border-right: 2px solid #0f3460;
+        }
+        .panel:last-child { border-right: none; }
+        .panel-header {
+            background: #16213e;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .panel-title {
+            color: #fff;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        .panel-badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .badge-current { background: #0f3460; color: #4da8da; }
+        .badge-new { background: #2d132c; color: #e94560; }
+        
+        .panel iframe {
+            flex: 1;
+            border: none;
+            background: #E6E9EF;
+        }
+        
+        /* 单栏模式 */
+        .single-mode .panel { display: none; }
+        .single-mode .panel.active { display: flex; flex: 1; }
+        
+        .mode-toggle {
+            display: flex;
+            gap: 5px;
+            background: #0f3460;
+            padding: 4px;
+            border-radius: 8px;
+        }
+        .mode-toggle button {
+            padding: 6px 12px;
+            border: none;
+            background: transparent;
+            color: #888;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+        .mode-toggle button.active {
+            background: #e94560;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎨 卡片样式对比工具</h1>
+        <div class="controls">
+            <div class="mode-toggle">
+                <button class="active" onclick="setMode('split')">并排</button>
+                <button onclick="setMode('left')">仅当前</button>
+                <button onclick="setMode('right')">仅新版</button>
+            </div>
+            <button class="btn-refresh" onclick="refresh()">🔄 刷新</button>
+            <button class="btn-swap" onclick="swapPanels()">⇄ 交换位置</button>
+        </div>
+    </div>
+    
+    <div class="compare-container" id="container">
+        <div class="panel" id="panel-left">
+            <div class="panel-header">
+                <span class="panel-title">📄 当前版本</span>
+                <span class="panel-badge badge-current">card_preview.html</span>
+            </div>
+            <iframe id="frame-left" src="card_preview.html"></iframe>
+        </div>
+        <div class="panel" id="panel-right">
+            <div class="panel-header">
+                <span class="panel-title">✨ 美术新版</span>
+                <span class="panel-badge badge-new">card_design_v2.html</span>
+            </div>
+            <iframe id="frame-right" src="card_design_v2.html"></iframe>
+        </div>
+    </div>
+
+    <script>
+        function refresh() {
+            document.getElementById('frame-left').src += ''
+            document.getElementById('frame-right').src += ''
+        }
+        
+        function swapPanels() {
+            const container = document.getElementById('container')
+            const left = document.getElementById('panel-left')
+            const right = document.getElementById('panel-right')
+            container.insertBefore(right, left)
+        }
+        
+        function setMode(mode) {
+            const container = document.getElementById('container')
+            const left = document.getElementById('panel-left')
+            const right = document.getElementById('panel-right')
+            const buttons = document.querySelectorAll('.mode-toggle button')
+            
+            buttons.forEach(b => b.classList.remove('active'))
+            event.target.classList.add('active')
+            
+            container.classList.remove('single-mode')
+            left.classList.remove('active')
+            right.classList.remove('active')
+            
+            if (mode === 'left') {
+                container.classList.add('single-mode')
+                left.classList.add('active')
+            } else if (mode === 'right') {
+                container.classList.add('single-mode')
+                right.classList.add('active')
+            }
+        }
+    </script>
+</body>
+</html>
+

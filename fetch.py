@@ -23,10 +23,11 @@ def get_timestamp_for_date(date_str=None):
     # 返回毫秒级时间戳
     return int(dt.timestamp() * 1000)
 
-def get_data_from_backend(date_str=None):
+def get_data_from_backend(date_str=None, verbose=False):
     """
     从 Meme 业务系统获取指定日期的数据
     date_str: 可选，格式 YYYY-MM-DD，不传则获取今天的数据
+    verbose: 是否打印详细的 API 原始数据
     """
     print(f"正在从 Meme 系统获取数据...")
     
@@ -47,14 +48,14 @@ def get_data_from_backend(date_str=None):
         
         data = response.json()
         
-        # ========== DEBUG: 打印 API 原始返回 ==========
-        import json
-        print("\n" + "="*60)
-        print("📡 API 原始返回数据:")
-        print("="*60)
-        print(json.dumps(data, ensure_ascii=False, indent=2))
-        print("="*60 + "\n")
-        # =============================================
+        # 仅在 verbose 模式下打印 API 原始返回
+        if verbose:
+            import json
+            print("\n" + "="*60)
+            print("📡 API 原始返回数据:")
+            print("="*60)
+            print(json.dumps(data, ensure_ascii=False, indent=2))
+            print("="*60 + "\n")
         
         if data.get('statusCode') != 200:
             print(f"❌ API 返回错误: {data.get('statusText', '未知错误')}")
@@ -72,17 +73,16 @@ def get_data_from_backend(date_str=None):
         # 转换为统一格式
         news_list = []
         for idx, item in enumerate(content_list, 1):
-            # ========== DEBUG: 打印每条新闻的原始字段 ==========
-            print(f"\n📰 第 {idx} 条新闻原始字段:")
-            print(f"   - title: {item.get('title', '')[:50]}...")
-            print(f"   - referenceLinks: {item.get('referenceLinks', '')}")
-            print(f"   - reference: {item.get('reference', '')}")
-            print(f"   - remakeIndex: {item.get('remakeIndex', 0)}")
-            print(f"   - score: {item.get('score', 0)}")
-            print(f"   - content 长度: {len(item.get('content', ''))} 字符")
-            # 打印 item 中所有的 key，帮助发现新字段
-            print(f"   - 所有字段: {list(item.keys())}")
-            # =============================================
+            # 仅在 verbose 模式下打印每条新闻的原始字段
+            if verbose:
+                print(f"\n📰 第 {idx} 条新闻原始字段:")
+                print(f"   - title: {item.get('title', '')[:50]}...")
+                print(f"   - referenceLinks: {item.get('referenceLinks', '')}")
+                print(f"   - reference: {item.get('reference', '')}")
+                print(f"   - remakeIndex: {item.get('remakeIndex', 0)}")
+                print(f"   - score: {item.get('score', 0)}")
+                print(f"   - content 长度: {len(item.get('content', ''))} 字符")
+                print(f"   - 所有字段: {list(item.keys())}")
             
             news_list.append({
                 "title": item.get('title', ''),
@@ -109,14 +109,15 @@ def get_data_from_backend(date_str=None):
         return []
 
 # ================= 主逻辑 =================
-def main(date_str=None, enable_highlight=True):
+def main(date_str=None, enable_highlight=True, verbose=False):
     """
     主函数，支持指定日期获取数据
     date_str: 可选，格式 YYYY-MM-DD
     enable_highlight: 是否启用 AI 标红功能
+    verbose: 是否打印详细的 API 原始数据
     """
     # 1. 获取新数据
-    raw_news_list = get_data_from_backend(date_str)
+    raw_news_list = get_data_from_backend(date_str, verbose=verbose)
     
     if not raw_news_list:
         print("没有获取到数据，退出")
@@ -206,9 +207,15 @@ if __name__ == "__main__":
         action='store_true',
         help='禁用 AI 标红功能（默认启用）'
     )
+    parser.add_argument(
+        '-v', '--verbose',
+        action='store_true',
+        help='打印详细的 API 原始数据（调试用）'
+    )
     
     args = parser.parse_args()
     enable_highlight = not args.no_highlight
+    verbose = args.verbose
     
     # 日期范围模式
     if args.start and args.end:
@@ -225,7 +232,7 @@ if __name__ == "__main__":
             print(f"\n{'='*50}")
             print(f"📆 正在处理: {date_str}")
             print('='*50)
-            main(date_str, enable_highlight)
+            main(date_str, enable_highlight, verbose)
             current += datetime.timedelta(days=1)
     # 单日期模式
     elif args.date:
@@ -234,6 +241,6 @@ if __name__ == "__main__":
         except ValueError:
             print("❌ 日期格式错误！请使用 YYYY-MM-DD 格式，例如: 2025-12-01")
             exit(1)
-        main(args.date, enable_highlight)
+        main(args.date, enable_highlight, verbose)
     else:
-        main(None, enable_highlight)
+        main(None, enable_highlight, verbose)

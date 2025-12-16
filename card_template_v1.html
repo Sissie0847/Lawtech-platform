@@ -58,8 +58,11 @@
             border-radius: 50%; background: var(--bg-color);
             display: flex; align-items: center; justify-content: center;
             box-shadow: inset 6px 6px 12px var(--shadow-dark), inset -6px -6px 12px var(--shadow-light);
+            overflow: hidden;
         }
         .visual-icon { font-size: 2rem; filter: grayscale(100%) opacity(0.5); }
+        .visual-icon-img { width: 50px; height: 50px; object-fit: contain; filter: grayscale(30%) opacity(0.7); }
+        .meta-icon { width: 20px; height: 20px; object-fit: contain; vertical-align: middle; margin-right: 4px; }
         .banner-glow {
             position: absolute; top: -50px; right: -50px; width: 200px; height: 200px;
             background: radial-gradient(circle, rgba(72,156,193,0.15) 0%, rgba(230,233,239,0) 70%);
@@ -121,37 +124,36 @@
             vertical-align: middle;
         }
 
-        /* 关键数据组件 - 扁平标签式 */
+        /* 关键数据组件 - 扁平胶囊标签式 (浅灰底+蓝字) */
         .key-data-container {
             display: flex;
             flex-wrap: wrap;
             gap: 8px;
-            margin-top: 20px;
+            margin: 12px 0 8px 0;
         }
         .key-data-card {
             display: inline-flex;
             align-items: center;
-            gap: 6px;
-            background: linear-gradient(135deg, rgba(72,156,193,0.08) 0%, rgba(108,99,255,0.06) 100%);
-            border-radius: 20px;
-            padding: 6px 14px;
-            border: 1px solid rgba(72,156,193,0.15);
+            gap: 5px;
+            background: rgba(0, 0, 0, 0.045);
+            border-radius: 15px;
+            padding: 4px 12px;
         }
         .key-data-label {
-            font-size: 0.75rem;
-            color: var(--text-secondary);
+            font-size: 0.72rem;
+            color: #888;
             font-weight: 500;
             white-space: nowrap;
         }
         .key-data-value {
-            font-size: 0.95rem;
+            font-size: 0.88rem;
             font-weight: 700;
             color: var(--theme-blue);
         }
         .key-data-unit {
-            font-size: 0.75rem;
+            font-size: 0.72rem;
             font-weight: 500;
-            color: var(--text-secondary);
+            color: #888;
         }
 
         .section-divider {
@@ -233,10 +235,7 @@
             display: flex; align-items: center; justify-content: center;
             box-shadow: 10px 10px 20px var(--shadow-dark), -10px -10px 20px var(--shadow-light);
         }
-        .qr-placeholder {
-            font-size: 2rem;
-            color: #ccc;
-        }
+        .qr-img { width: 100%; height: 100%; border-radius: 10px; }
         .qr-text { margin-top: 15px; font-size: 0.8rem; color: #999; }
     </style>
 </head>
@@ -247,15 +246,16 @@
         <div class="hero-banner">
             <div class="banner-glow"></div>
             <div class="banner-visual">
-                <span class="visual-icon">⚖️</span>
+                <img src="{{ scale_icon }}" class="visual-icon-img" alt="天平">
             </div>
             <div class="banner-content">
                 <div class="banner-subtitle">LAWGEEK 晚读</div>
                 <h1 class="banner-title">DAILY NEWS</h1>
                 <div class="banner-meta">
-                    <span>📅 12月16日</span>
+                    <img src="{{ calendar_icon }}" class="meta-icon" alt="日历">
+                    <span>{{ date_str }}</span>
                     <span>|</span>
-                    <span>星期一</span>
+                    <span>{{ weekday_str }}</span>
                 </div>
             </div>
         </div>
@@ -289,105 +289,75 @@
             </svg>
         </div>
 
+        {% if news_items %}
+        {% set lead = news_items[0] %}
         <!-- 头条新闻 01 -->
         <section class="lead-story">
             <div class="lead-header">
                 <span class="lead-number">01</span>
-                <h2 class="lead-title">全球最大律所 Dentons 与 OpenAI 达成合作</h2>
+                <h2 class="lead-title">{{ lead.main_title | regex_replace('^\\d+[.、]\\s*', '') }}</h2>
             </div>
-            <p class="lead-desc">全球最大的律师事务所 Dentons 与 OpenAI 建立直接合作，率先在全所范围部署 ChatGPT 企业版，并基于 API 开发定制化法律工具，标志着法律行业与 AI 巨头的首次深度协同。</p>
-            
-            <ul class="lead-bullets">
-                <li>Dentons 英国、爱尔兰和中东办公室优先接入最新大模型技术，员工可使用安全增强版 ChatGPT 企业版，提升服务效率与模型迭代速度。</li>
-                <li>内部团队开发定制 GPT 工具，如法规追踪系统和雇佣仲裁分析模块，所有应用均设'律师介入'环节以保障数据隐私与合规性。</li>
-                <li>合作模式打破传统律所依赖第三方科技公司的路径，未来计划建立英国数据驻留中心，满足客户对数据本地化的严格要求。</li>
-            </ul>
 
-            <!-- 关键数据组件 -->
+            {% if lead.key_data %}
+            <!-- 关键数据组件 - 紧贴标题下方 -->
             <div class="key-data-container">
+                {% for item in lead.key_data %}
                 <div class="key-data-card">
-                    <span class="key-data-label">覆盖律师</span>
-                    <span class="key-data-value">7000+</span>
-                    <span class="key-data-unit">人</span>
+                    <span class="key-data-label">{{ item.label }}</span>
+                    <span class="key-data-value">{{ item.value }}</span>
+                    {% if item.unit %}<span class="key-data-unit">{{ item.unit }}</span>{% endif %}
                 </div>
-                <div class="key-data-card">
-                    <span class="key-data-label">效率提升</span>
-                    <span class="key-data-value">118</span>
-                    <span class="key-data-unit">小时/年</span>
-                </div>
-                <div class="key-data-card">
-                    <span class="key-data-label">估值达</span>
-                    <span class="key-data-value">80</span>
-                    <span class="key-data-unit">亿美元</span>
-                </div>
+                {% endfor %}
             </div>
+            {% endif %}
+
+            {% if lead.abstract_summary %}
+            <p class="lead-desc">{{ lead.abstract_summary }}</p>
+            {% endif %}
+            
+            {% if lead.bullet_points %}
+            <ul class="lead-bullets">
+                {% for point in lead.bullet_points %}
+                <li>{{ point }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
         </section>
 
         <div class="section-divider"></div>
 
-        <!-- 普通新闻卡片 02-05 -->
+        {% if news_items | length > 1 %}
+        <!-- 普通新闻卡片 -->
         <div class="news-grid">
-            
-            <!-- 卡片 02 -->
-            <article class="news-card" style="--card-accent: #489CC1;">
+            {% set accent_colors = ['#489CC1', '#FF7272', '#21A87D', '#6C63FF'] %}
+            {% for news in news_items[1:] %}
+            <article class="news-card" style="--card-accent: {{ accent_colors[loop.index0 % 4] }};">
                 <div class="card-header">
-                    <div class="card-number">02</div>
-                    <h3 class="card-title">CMS全球部署Harvey AI：EMEA最大规模律所智能化落地</h3>
+                    <div class="card-number">{{ '%02d' | format(loop.index + 1) }}</div>
+                    <h3 class="card-title">{{ news.main_title | regex_replace('^\\d+[.、]\\s*', '') }}</h3>
                 </div>
+                {% if news.bullet_points %}
                 <ul class="card-bullets">
-                    <li>CMS在50多个国家的21个成员机构全面推广Harvey AI，覆盖7000名律师与员工，初步数据显示93%用户效率提升，人均年节省117.9小时。</li>
-                    <li>此次部署标志着传统律所从试点走向规模化AI融合，将释放的时间资源转向高价值法律服务，重塑客户价值交付模式。</li>
+                    {% for point in news.bullet_points %}
+                    <li>{{ point }}</li>
+                    {% endfor %}
                 </ul>
+                {% endif %}
             </article>
-
-            <!-- 卡片 03 -->
-            <article class="news-card" style="--card-accent: #FF7272;">
-                <div class="card-header">
-                    <div class="card-number">03</div>
-                    <h3 class="card-title">Clio 的 AI 转型：法律工作流的范式转移</h3>
-                </div>
-                <ul class="card-bullets">
-                    <li>Clio 宣布以 10 亿美元收购 vLex，并推出新一代 '行动系统' AI 平台，实现法律流程自动化。</li>
-                    <li>通过垂直领域深度整合，AI 正从辅助工具变为法律服务的核心驱动力，重塑律所工作模式。</li>
-                </ul>
-            </article>
-
-            <!-- 卡片 04 -->
-            <article class="news-card" style="--card-accent: #21A87D;">
-                <div class="card-header">
-                    <div class="card-number">04</div>
-                    <h3 class="card-title">Harvey 创始人 Reddit 深度对话：法律 AI 正从工具迈向平台</h3>
-                </div>
-                <ul class="card-bullets">
-                    <li>Harvey 联合创始人披露公司日活用户占月活比例自2023年以来增长81%，并强调与 LexisNexis 深度整合，开发出即决判决动议起草等垂直工作流，团队中20%为执业背景律师。</li>
-                    <li>法律 AI 的价值不在于'零幻觉'，而在于重构服务模式——Harvey 坚持专注法律场景的定制化、安全性与生态集成，推动行业向高协作、合规可控的平台级演进。</li>
-                </ul>
-            </article>
-
-            <!-- 卡片 05 -->
-            <article class="news-card" style="--card-accent: #6C63FF;">
-                <div class="card-header">
-                    <div class="card-number">05</div>
-                    <h3 class="card-title">法大大电子签连获四项大奖：AI+出海驱动法律科技新范式</h3>
-                </div>
-                <ul class="card-bullets">
-                    <li>法大大近期斩获IDC'中企出海奖'、36氪'WISE2025年度AI应用场景突破企业'、WIM'2025中国企业数字化服务商TOP10'及中关村'番钛客'金融科技应用创新奖，其Nota Sign全球签支持超100个国家合规签约，iTerms平台实现AI驱动的智能合同生成，累计签署文件达122亿份。</li>
-                    <li>奖项背后反映电子签从工具向全链路服务跃迁的趋势——融合大模型、区块链与国密加密技术，正成为企业出海、金融合规与法务提效的核心数字基座。</li>
-                </ul>
-            </article>
-
+            {% endfor %}
         </div>
+        {% endif %}
+        {% endif %}
 
         <!-- 页脚 -->
         <footer>
             <div class="footer-brand">LAWGEEK | 法律极客</div>
             <p class="footer-slogan">Memene · 阅读即成长</p>
             <div class="qr-code-box">
-                <span class="qr-placeholder">📷</span>
+                <img src="{{ qr_code_path }}" class="qr-img" alt="二维码">
             </div>
             <p class="qr-text">长按扫码 · 订阅接收每日推送</p>
         </footer>
     </div>
 </body>
 </html>
-

@@ -4,6 +4,7 @@
 requests
 pandas
 streamlit
+streamlit-sortables
 
 # 卡片生成
 jinja2

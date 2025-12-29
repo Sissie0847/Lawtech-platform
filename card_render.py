@@ -5,6 +5,7 @@
 用法:
     python card_render.py                           # 默认模板 + 默认数据
     python card_render.py --template xxx.html       # 指定模板
+    python card_render.py -t card_template_v2.html
     python card_render.py --data xxx.json           # 指定数据
     python card_render.py --output xxx.png          # 指定输出
     python card_render.py --date 12月17日           # 指定日期
@@ -23,16 +24,16 @@ from jinja2 import Environment
 
 def load_json_data(json_file="news_edit_review.json"):
     """读取 JSON 数据"""
-    print(f"📊 读取数据: {json_file}")
+    print(f"[数据] 读取数据: {json_file}")
     with open(json_file, "r", encoding="utf-8") as f:
         data = json.load(f)
-    print(f"   ✓ 共 {len(data)} 条新闻")
+    print(f"   [OK] 共 {len(data)} 条新闻")
     return data
 
 
 def load_html_template(html_file):
     """读取 HTML 模板"""
-    print(f"📄 读取模板: {html_file}")
+    print(f"[模板] 读取模板: {html_file}")
     with open(html_file, "r", encoding="utf-8") as f:
         return f.read()
 
@@ -48,11 +49,11 @@ def load_image_base64(paths, name="图片"):
         try:
             with open(img_path, "rb") as f:
                 encoded = base64.b64encode(f.read()).decode()
-                print(f"   ✓ 已加载{name}: {img_path}")
+                print(f"   [OK] 已加载{name}: {img_path}")
                 return f"data:image/png;base64,{encoded}"
         except FileNotFoundError:
             continue
-    print(f"   ⚠️ 未找到{name}，使用占位图")
+    print(f"   [警告] 未找到{name}，使用占位图")
     return "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
 
 
@@ -108,7 +109,7 @@ async def generate_png(html_content, output_path="daily_news_card.png", padding_
         padding_top: 顶部额外边距 (像素)
         padding_bottom: 底部额外边距 (像素)
     """
-    print(f"🖼️  生成图片: {output_path}")
+    print(f"[图片] 生成图片: {output_path}")
     
     async with async_playwright() as p:
         browser = await p.chromium.launch()
@@ -125,7 +126,7 @@ async def generate_png(html_content, output_path="daily_news_card.png", padding_
         await page.locator(".container").screenshot(path=output_path, omit_background=True)
         await browser.close()
     
-    print(f"🎉 完成! 已保存到: {output_path}")
+    print(f"[完成] 已保存到: {output_path}")
     return output_path
 
 
@@ -140,7 +141,7 @@ async def render_card(
 ):
     """主渲染函数"""
     print("\n" + "="*50)
-    print("🚀 开始渲染卡片")
+    print("开始渲染卡片")
     print("="*50)
     
     # 1. 读取数据

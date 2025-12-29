@@ -324,7 +324,7 @@ HTML_TEMPLATE = """
         }
         .lead-bullets { list-style: none; padding: 0; margin: 0; }
         .lead-bullets li {
-            position: relative; 
+            position: relative;
             padding-left: 18px; 
             margin-bottom: 10px;
             color: var(--text-primary); 
@@ -375,7 +375,7 @@ HTML_TEMPLATE = """
             font-weight: 500;
             color: var(--text-secondary);
         }
-
+        
         .section-divider {
             height: 2px; background: var(--bg-color); margin: 0 auto 50px; width: 80%;
             border-radius: 2px;
@@ -476,7 +476,7 @@ HTML_TEMPLATE = """
                     <span>{{ weekday_str }}</span>
                 </div>
             </div>
-        </div>
+            </div>
 
         <div class="feature-illustration">
             <svg viewBox="0 0 500 200" xmlns="http://www.w3.org/2000/svg">
@@ -505,7 +505,7 @@ HTML_TEMPLATE = """
                 </g>
             </svg>
         </div>
-
+        
         {% if news_items %}
         {% set lead = news_items[0] %}
         <section class="lead-story">

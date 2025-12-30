@@ -2,11 +2,16 @@ import streamlit as st
 import pandas as pd
 import os
 import time
+import datetime
 from streamlit_sortables import sort_items
 from publish_feishu import FeishuPublisher, test_connection
 from wechat_format import generate_wechat_html
 from card_export import generate_card_txt, save_card_txt
 from community_copy import generate_community_copy
+
+# 导入 fetch.py 的功能
+from fetch import get_data_from_backend
+from ai_highlight import AIHighlighter
 
 # 页面设置
 st.set_page_config(
@@ -388,7 +393,7 @@ def render_top_header():
         st.markdown("""
         <div class="top-header">
             <h1><span class="icon">⚖️</span> LawGeek 运营台</h1>
-            <p>资讯审阅 → 内容发布 → 归档，一站式完成</p>
+            <p>数据获取 → 资讯审阅 → 内容发布 → 归档，一站式完成</p>
         </div>
         """, unsafe_allow_html=True)
     
@@ -404,6 +409,258 @@ def render_top_header():
         with btn2:
             if st.button("❓ 帮助", key="help_btn"):
                 show_help_dialog()
+
+
+def fetch_news_data(date_str=None, start_date=None, end_date=None, progress_callback=None, status_callback=None):
+    """
+    获取新闻数据并保存到 CSV
+    date_str: 单个日期，格式 YYYY-MM-DD
+    start_date, end_date: 日期范围
+    progress_callback: 进度回调函数 (current, total)
+    status_callback: 状态回调函数 (message)
+    """
+    try:
+        # 初始化 AI 处理器
+        if status_callback:
+            status_callback("正在初始化 AI 处理器...")
+        ai_processor = AIHighlighter()
+        
+        # 确定要处理的日期列表
+        dates_to_process = []
+        if start_date and end_date:
+            # 日期范围模式
+            start_dt = datetime.datetime.strptime(start_date, "%Y-%m-%d")
+            end_dt = datetime.datetime.strptime(end_date, "%Y-%m-%d")
+            current = start_dt
+            while current <= end_dt:
+                dates_to_process.append(current.strftime("%Y-%m-%d"))
+                current += datetime.timedelta(days=1)
+        elif date_str:
+            # 单日期模式
+            dates_to_process = [date_str]
+        else:
+            # 默认今天
+            dates_to_process = [datetime.date.today().strftime("%Y-%m-%d")]
+        
+        new_rows = []
+        total_dates = len(dates_to_process)
+        processed_news_count = 0
+        
+        # 缓存：存储每个日期获取的新闻数据，避免重复调用 API
+        news_cache = {}
+        total_news_count = 0
+        
+        # 一次性获取所有日期的数据并缓存（用于统计和后续处理）
+        if status_callback:
+            status_callback("正在获取新闻数据...")
+        for date_idx, date in enumerate(dates_to_process, 1):
+            if status_callback:
+                status_callback(f"📡 正在获取日期 {date} 的数据 ({date_idx}/{total_dates})...")
+            
+            raw_news_list = get_data_from_backend(date, verbose=False)
+            if raw_news_list:
+                news_cache[date] = raw_news_list
+                total_news_count += len(raw_news_list)
+        
+        if total_news_count == 0:
+            return False, "没有获取到新数据"
+        
+        # 估算时间：每条新闻约 3-5 秒（AI处理，API已调用完成）
+        estimated_seconds = total_news_count * 4
+        estimated_minutes = estimated_seconds // 60
+        estimated_secs = estimated_seconds % 60
+        if status_callback:
+            if estimated_minutes > 0:
+                status_callback(f"预计需要 {estimated_minutes} 分 {estimated_secs} 秒（共 {total_news_count} 条新闻，每条约 3-5 秒）")
+            else:
+                status_callback(f"预计需要 {estimated_secs} 秒（共 {total_news_count} 条新闻，每条约 3-5 秒）")
+        
+        # 处理每个日期（使用缓存的数据，不再重复调用 API）
+        for date_idx, date in enumerate(dates_to_process, 1):
+            if date not in news_cache:
+                continue
+                
+            if status_callback:
+                status_callback(f"📅 正在处理日期 {date} ({date_idx}/{total_dates})...")
+            
+            # 使用缓存的数据，避免重复调用 API
+            raw_news_list = news_cache[date]
+            
+            # 处理每条新闻
+            for news_idx, news in enumerate(raw_news_list, 1):
+                processed_news_count += 1
+                
+                if status_callback:
+                    status_callback(f"📰 正在处理: {news['title'][:30]}... ({processed_news_count}/{total_news_count})")
+                
+                # 更新进度
+                if progress_callback:
+                    progress = processed_news_count / total_news_count
+                    progress_callback(progress)
+                
+                content = news['content']
+                title = news['title']
+                ai_classification = "推荐"
+                ai_reason = ""
+                
+                # AI 处理（标红 + 分类）
+                if ai_processor and content:
+                    result = ai_processor.process_article(title, content)
+                    content = result['content']
+                    ai_classification = result['classification']
+                    ai_reason = result['reason']
+                
+                new_rows.append({
+                    "收录日期": date,
+                    "每日排名": news['rank'],
+                    "评分": news.get('score', 0),
+                    "标题": title,
+                    "链接": news['url'],
+                    "来源名称": news.get('reference', ''),
+                    "原文内容": content,
+                    "AI分类": ai_classification,
+                    "AI理由": ai_reason,
+                    "人工审核": "待审核",
+                    "发布顺序": "",
+                })
+        
+        if not new_rows:
+            return False, "没有获取到新数据"
+        
+        # 保存到 CSV
+        if status_callback:
+            status_callback("💾 正在保存数据...")
+        new_df = pd.DataFrame(new_rows)
+        
+        if os.path.exists(CSV_FILE) and os.path.getsize(CSV_FILE) > 0:
+            # 如果文件已存在，读取旧的，去重后拼接
+            try:
+                old_df = pd.read_csv(CSV_FILE)
+                # 去重：如果标题已经有了就不加了
+                new_df = new_df[~new_df['标题'].isin(old_df['标题'])]
+                if new_df.empty:
+                    return False, "所有新闻都已存在，没有新增数据"
+                final_df = pd.concat([old_df, new_df], ignore_index=True)
+            except pd.errors.EmptyDataError:
+                final_df = new_df
+        else:
+            final_df = new_df
+        
+        final_df.to_csv(CSV_FILE, index=False, encoding='utf-8-sig')
+        
+        if progress_callback:
+            progress_callback(1.0)  # 完成
+        
+        return True, f"成功获取 {len(new_df)} 条新数据，共 {len(final_df)} 条"
+        
+    except Exception as e:
+        return False, f"获取数据失败: {str(e)}"
+
+
+def render_fetch_data_section():
+    """渲染获取数据区域"""
+    # st.markdown("---")  # 删除分割线
+    
+    # 显示标题
+    st.markdown("#### 📥 获取数据")
+    
+    # 直接显示，不使用折叠按钮
+    # 单日期获取功能（暂时注释）
+    # col1, col2 = st.columns([1, 1])
+    # 
+    # with col1:
+    #     st.markdown("#### 单日期获取")
+    #     date_input = st.date_input(
+    #         "选择日期",
+    #         value=datetime.date.today(),
+    #         key="fetch_single_date"
+    #     )
+    #     if st.button("📥 获取该日期数据", key="fetch_single_btn", type="primary"):
+    #         date_str = date_input.strftime("%Y-%m-%d")
+    #         
+    #         # 创建进度条和状态容器
+    #         progress_bar = st.progress(0)
+    #         status_text = st.empty()
+    #         
+    #         def update_progress(progress):
+    #             progress_bar.progress(progress)
+    #         
+    #         def update_status(message):
+    #             status_text.info(f"⏳ {message}")
+    #         
+    #         # 执行获取数据
+    #         success, message = fetch_news_data(
+    #             date_str=date_str,
+    #             progress_callback=update_progress,
+    #             status_callback=update_status
+    #         )
+    #         
+    #         # 清除进度条和状态
+    #         progress_bar.empty()
+    #         status_text.empty()
+    #         
+    #         if success:
+    #             st.success(f"✅ {message}")
+    #             time.sleep(1)  # 短暂延迟让用户看到成功消息
+    #             st.rerun()  # 刷新页面
+    #         else:
+    #             st.error(f"❌ {message}")
+    
+    # 日期范围获取功能（保留）
+    # st.markdown("#### 日期范围获取")  # 隐藏标题
+    st.caption("前置工作，数据导入")
+    col_start, col_end, col_btn = st.columns([2, 2, 1.5])
+    with col_start:
+        start_date = st.date_input(
+            "开始日期",
+            value=datetime.date.today(),
+            key="fetch_start_date"
+        )
+    with col_end:
+        end_date = st.date_input(
+            "结束日期",
+            value=datetime.date.today(),
+            key="fetch_end_date"
+        )
+    with col_btn:
+        st.markdown("<br>", unsafe_allow_html=True)  # 垂直对齐按钮
+        fetch_btn_clicked = st.button("📥 获取数据", key="fetch_range_btn", type="primary", use_container_width=True)
+    
+    if fetch_btn_clicked:
+            if start_date > end_date:
+                st.error("❌ 开始日期不能晚于结束日期")
+            else:
+                start_str = start_date.strftime("%Y-%m-%d")
+                end_str = end_date.strftime("%Y-%m-%d")
+                
+                # 创建进度条和状态容器
+                progress_bar = st.progress(0)
+                status_text = st.empty()
+                
+                def update_progress(progress):
+                    progress_bar.progress(progress)
+                
+                def update_status(message):
+                    status_text.info(f"⏳ {message}")
+                
+                # 执行获取数据
+                success, message = fetch_news_data(
+                    start_date=start_str,
+                    end_date=end_str,
+                    progress_callback=update_progress,
+                    status_callback=update_status
+                )
+                
+                # 清除进度条和状态
+                progress_bar.empty()
+                status_text.empty()
+                
+                if success:
+                    st.success(f"✅ {message}")
+                    time.sleep(1)  # 短暂延迟让用户看到成功消息
+                    st.rerun()  # 刷新页面
+                else:
+                    st.error(f"❌ {message}")
 
 
 def render_stats_cards(df):
@@ -583,7 +840,7 @@ if not os.path.exists(CSV_FILE):
     render_empty_state(
         "📭",
         "还没有数据",
-        "请先运行 python fetch.py 获取新闻"
+        "请使用上方的「获取数据」功能获取新闻"
     )
     st.stop()
 
@@ -597,6 +854,9 @@ tab_data, tab_review, tab_publish = st.tabs(["📊 数据总览", "📋 资讯�
 
 # ==================== TAB 1: 数据总览 ====================
 with tab_data:
+    # 获取数据功能
+    render_fetch_data_section()
+   
     st.markdown("### 📊 数据总览")
     st.caption("第一步：查看导入的资讯数量，了解今天有多少新闻等待审阅（已归档的不显示）")
     
@@ -620,7 +880,7 @@ with tab_data:
             "收录日期": st.column_config.TextColumn("📅 日期", width="small"),
         },
         hide_index=True,
-        use_container_width=True,
+        width='stretch',
         height=500
     )
 
